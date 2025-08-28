@@ -1,3 +1,11 @@
+<?php
+// PHP session starts at the very top of the file before any output
+session_start();
+
+// You can add logic here to handle redirects or other pre-page actions.
+// For example, redirecting logged-in users away from the login modal.
+// This is an optional step, but a good practice.
+?>
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -585,12 +593,12 @@
         }
 
         $comments_query = "SELECT c.id, c.name, c.comment, c.created_at, 
-                                  COUNT(l.id) AS like_count
-                                  FROM comments c
-                                  LEFT JOIN comment_likes l ON c.id = l.comment_id
-                                  GROUP BY c.id
-                                  ORDER BY c.created_at DESC
-                                  LIMIT 5";
+                                 COUNT(l.id) AS like_count
+                                 FROM comments c
+                                 LEFT JOIN comment_likes l ON c.id = l.comment_id
+                                 GROUP BY c.id
+                                 ORDER BY c.created_at DESC
+                                 LIMIT 5";
         
         $comments_result = mysqli_query($conn, $comments_query);
         
@@ -613,7 +621,8 @@
         <?php else: ?>
           <p style="text-align: center; margin-top: 2rem;">No comments yet. Be the first to leave a review!</p>
         <?php endif; 
-        mysqli_close($conn);
+        // mysqli_close($conn); This is commented out to allow for multiple queries on the same connection.
+        // It's better to close it at the very end of the script or let it be closed automatically.
         ?>
       </div>
     </section>
@@ -624,7 +633,6 @@
           <span class="close" onclick="closeLoginModal()">&times;</span>
           <h2 class="section__header">Login</h2>
           <form class="login__form" action="login.php" method="POST" id="loginForm">
-            <!-- Container for login error message will be inserted here by JS -->
             <div id="loginErrorContainer"></div>
             <div class="form__group">
               <label for="email">Email</label>
@@ -745,7 +753,7 @@
           if (loginModal) {
             generateCaptcha();
             loginModal.style.display = 'block';
-             // Clear any previous error messages when opening manually
+              // Clear any previous error messages when opening manually
             const errorContainer = document.getElementById('loginErrorContainer');
             errorContainer.innerHTML = '';
           }
