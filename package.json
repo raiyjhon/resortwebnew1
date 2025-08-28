@@ -1,0 +1,19 @@
+{
+  "name": "dentoreserve",
+  "version": "1.0.0",
+  "description": "capspro",
+  "main": "index.php",
+  "scripts": {
+    "test": "echo \"No test specified"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/raiyjhon/resortwebnew1.git"
+  },
+  "author": "faizalperalta",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/raiyjhon/resortwebnew1/issues"
+  },
+  "homepage": "https://github.com/raiyjhon/resortwebnew1#readme"
+}
