@@ -1,5 +1,5 @@
 <?php
-$host = "	localhost";
+$host = "localhost";
 $username = "root";
 $password = "";
 $database = "dentofarm";
