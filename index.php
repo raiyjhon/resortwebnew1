@@ -1,10 +1,6 @@
 <?php
 // PHP session starts at the very top of the file before any output
 session_start();
-
-// You can add logic here to handle redirects or other pre-page actions.
-// For example, redirecting logged-in users away from the login modal.
-// This is an optional step, but a good practice.
 ?>
 <!DOCTYPE html>
 <html lang="en">
