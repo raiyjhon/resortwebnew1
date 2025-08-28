@@ -4,7 +4,8 @@
   "description": "capspro",
   "main": "index.php",
   "scripts": {
-    "test": "echo \"No test specified"
+    "start": "php -S 0.0.0.0:8000",
+    "test": "echo \"No test specified\""
   },
   "repository": {
     "type": "git",
