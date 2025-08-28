@@ -1,8 +1,8 @@
 <?php
-$host = "	sql312.infinityfree.com";
-$username = "if0_39801700";
-$password = "Q7GtTyfOS5f";
-$database = "if0_39801700_Dentofarm";
+$host = "	localhost";
+$username = "root";
+$password = "";
+$database = "dentofarm";
 
 // Create connection
 $conn = new mysqli($host, $username, $password, $database);
