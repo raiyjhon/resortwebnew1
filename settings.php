@@ -20,26 +20,25 @@ $stmt->close();
 $error = '';
 $success = '';
 
-// Handle profile update
+// Handle profile update (ONLY for fullname)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
     $new_fullname = trim($_POST['fullname']);
-    $new_email = trim($_POST['email']);
     
-    if (!empty($new_fullname) && !empty($new_email)) {
-        $stmt = $conn->prepare("UPDATE users SET fullname = ?, email = ? WHERE id = ?");
-        $stmt->bind_param("ssi", $new_fullname, $new_email, $user_id);
+    if (!empty($new_fullname)) {
+        // Prepare statement to update ONLY the fullname
+        $stmt = $conn->prepare("UPDATE users SET fullname = ? WHERE id = ?");
+        $stmt->bind_param("si", $new_fullname, $user_id);
         
         if ($stmt->execute()) {
             $_SESSION['fullname'] = $new_fullname;
             $fullname = $new_fullname;
-            $email = $new_email;
             $success = "Profile updated successfully!";
         } else {
             $error = "Error updating profile: " . $stmt->error;
         }
         $stmt->close();
     } else {
-        $error = "All fields are required!";
+        $error = "Full name is required!";
     }
 }
 
@@ -107,330 +106,350 @@ $dark_mode = isset($_SESSION['dark_mode']) ? $_SESSION['dark_mode'] : 0;
   <title>Account Settings</title>
   <link href="https://cdn.jsdelivr.net/npm/remixicon@3.4.0/fonts/remixicon.css" rel="stylesheet">
   <style>
+    /* --- Global Styles --- */
     :root {
-      --bg-color: #ffffff;
-      --text-color: #333333;
-      --primary-color: #8a68da;
-      --secondary-color: #f5f5f5;
-      --card-bg: #ffffff;
+      --primary-color: #4a90e2;
+      --primary-hover-color: #357abd;
+      --text-color: #333;
+      --background-color: #f4f7f9;
+      --container-background: #ffffff;
       --border-color: #e0e0e0;
-      --nav-bg: #ffffff;
-      --nav-text: #333333;
-      --nav-hover: #f0f0f0;
+      --error-color: #e74c3c;
+      --success-color: #2ecc71;
+      --input-background: #fdfdfd;
+      --static-field-bg: #f0f0f0;
+      --navbar-background: #ffffff;
+      --navbar-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     }
-    
+
     .dark-mode {
-      --bg-color: #121212;
-      --text-color: #f5f5f5;
-      --primary-color: #9a7ae6;
-      --secondary-color: #1e1e1e;
-      --card-bg: #1e1e1e;
-      --border-color: #333333;
-      --nav-bg: #1e1e1e;
-      --nav-text: #f5f5f5;
-      --nav-hover: #333333;
+      --text-color: #f1f1f1;
+      --background-color: #1a1a1a;
+      --container-background: #2c2c2c;
+      --border-color: #444;
+      --input-background: #333;
+      --static-field-bg: #3a3a3a;
+      --navbar-background: #252525;
+      --navbar-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     }
-    
+
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
     }
-    
+
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: var(--bg-color);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--background-color);
       color: var(--text-color);
-      margin: 0;
-      padding: 0;
-      transition: all 0.3s ease;
+      line-height: 1.6;
+      transition: background-color 0.3s, color 0.3s;
     }
-    
-    /* Navbar Styles */
+
+    /* --- Navigation Bar --- */
     .navbar {
-      background-color: var(--nav-bg);
-      color: var(--nav-text);
+      background-color: var(--navbar-background);
+      box-shadow: var(--navbar-shadow);
       padding: 1rem 2rem;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       display: flex;
       justify-content: space-between;
       align-items: center;
       position: sticky;
       top: 0;
       z-index: 1000;
+      transition: background-color 0.3s;
     }
-    
+
     .navbar-brand {
       font-size: 1.5rem;
-      font-weight: bold;
+      font-weight: 600;
       color: var(--primary-color);
       text-decoration: none;
       display: flex;
       align-items: center;
-      gap: 0.5rem;
     }
-    
+
+    .navbar-brand i {
+      margin-right: 0.5rem;
+    }
+
     .navbar-nav {
       display: flex;
       align-items: center;
-      gap: 1.5rem;
+      list-style: none;
     }
-    
-    .nav-item {
-      position: relative;
-    }
-    
+
     .nav-link {
-      color: var(--nav-text);
+      color: var(--text-color);
       text-decoration: none;
-      padding: 0.5rem 0.75rem;
-      border-radius: 4px;
-      transition: background-color 0.3s ease;
+      padding: 0.5rem 1rem;
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      transition: color 0.2s;
     }
-    
+
     .nav-link:hover {
-      background-color: var(--nav-hover);
+      color: var(--primary-color);
     }
-    
+
+    .nav-link i {
+      margin-right: 0.5rem;
+    }
+
+    /* User Avatar & Dropdown */
+    .user-avatar {
+      width: 36px;
+      height: 36px;
+      background-color: var(--primary-color);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      margin-right: 0.75rem;
+    }
+
     .dropdown {
       position: relative;
     }
-    
-    .dropdown-toggle::after {
-      content: "▼";
-      font-size: 0.6rem;
-      margin-left: 0.5rem;
+
+    .dropdown-toggle {
+      cursor: pointer;
     }
-    
+
     .dropdown-menu {
       position: absolute;
+      top: 130%;
       right: 0;
-      top: 100%;
-      background-color: var(--nav-bg);
-      border-radius: 6px;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-      min-width: 200px;
+      background-color: var(--container-background);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      list-style: none;
       padding: 0.5rem 0;
+      min-width: 180px;
       opacity: 0;
       visibility: hidden;
       transform: translateY(10px);
-      transition: all 0.3s ease;
-      z-index: 1001;
+      transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
     }
-    
+
     .dropdown:hover .dropdown-menu {
       opacity: 1;
       visibility: visible;
       transform: translateY(0);
     }
-    
+
     .dropdown-item {
-      display: block;
-      padding: 0.75rem 1.5rem;
-      color: var(--nav-text);
+      display: flex;
+      align-items: center;
+      padding: 0.75rem 1.25rem;
+      color: var(--text-color);
       text-decoration: none;
-      transition: background-color 0.3s ease;
+      font-size: 0.95rem;
     }
-    
+
+    .dropdown-item i {
+      margin-right: 0.75rem;
+      width: 20px;
+      text-align: center;
+    }
+
     .dropdown-item:hover {
-      background-color: var(--nav-hover);
+      background-color: var(--background-color);
+      color: var(--primary-color);
     }
-    
+
     .dropdown-divider {
       height: 1px;
       background-color: var(--border-color);
       margin: 0.5rem 0;
     }
-    
-    .user-avatar {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      object-fit: cover;
-      background-color: var(--primary-color);
-      color: white;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      font-size: 0.875rem;
-    }
-    
-    /* Mobile menu toggle */
+
+    /* Mobile Menu */
     .menu-toggle {
       display: none;
-      cursor: pointer;
       font-size: 1.5rem;
+      cursor: pointer;
     }
-    
-    /* Settings Container */
+
+    /* --- Settings Container --- */
     .settings-container {
-      max-width: 1000px;
+      max-width: 800px;
       margin: 2rem auto;
       padding: 2rem;
-      background-color: var(--card-bg);
-      border-radius: 10px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      background-color: var(--container-background);
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+      transition: background-color 0.3s;
     }
-    
-    h1, h2, h3 {
-      color: var(--primary-color);
+
+    h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      color: var(--text-color);
     }
-    
-    .section {
-      margin-bottom: 2rem;
-      padding-bottom: 2rem;
+
+    h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-top: 2.5rem;
+      margin-bottom: 1.5rem;
+      padding-bottom: 0.75rem;
       border-bottom: 1px solid var(--border-color);
     }
-    
+
+    /* --- Forms --- */
     .form-group {
       margin-bottom: 1.5rem;
     }
-    
-    label {
+
+    .form-group label {
       display: block;
-      margin-bottom: 0.5rem;
       font-weight: 600;
+      margin-bottom: 0.5rem;
     }
-    
-    input[type="text"],
-    input[type="email"],
-    input[type="password"] {
+
+    .form-group input[type="text"],
+    .form-group input[type="email"],
+    .form-group input[type="password"] {
       width: 100%;
-      padding: 0.75rem;
+      padding: 0.85rem 1rem;
       border: 1px solid var(--border-color);
-      border-radius: 6px;
-      background-color: var(--secondary-color);
+      border-radius: 8px;
+      background-color: var(--input-background);
       color: var(--text-color);
       font-size: 1rem;
+      transition: border-color 0.2s, box-shadow 0.2s;
     }
     
-    .btn {
-      padding: 0.75rem 1.5rem;
-      background-color: var(--primary-color);
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
+    .form-group .static-field {
+      width: 100%;
+      padding: 0.85rem 1rem;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      background-color: var(--static-field-bg);
+      color: var(--text-color);
       font-size: 1rem;
-      transition: background-color 0.3s ease;
+      cursor: not-allowed;
     }
     
+    .form-group small {
+        display: block;
+        margin-top: 0.5rem;
+        color: #888;
+    }
+    .dark-mode .form-group small {
+        color: #aaa;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.25);
+    }
+
+    /* --- Buttons --- */
+    .btn {
+      background-color: var(--primary-color);
+      color: #fff;
+      border: none;
+      padding: 0.85rem 1.75rem;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.2s, transform 0.2s;
+    }
+
     .btn:hover {
-      background-color: #7a52d0;
+      background-color: var(--primary-hover-color);
+      transform: translateY(-2px);
     }
-    
+
+    /* --- Alerts --- */
     .alert {
       padding: 1rem;
-      border-radius: 6px;
-      margin-bottom: 1rem;
+      margin-bottom: 1.5rem;
+      border-radius: 8px;
+      font-weight: 500;
     }
-    
-    .alert-success {
-      background-color: #d4edda;
-      color: #155724;
-    }
-    
+
     .alert-error {
-      background-color: #f8d7da;
-      color: #721c24;
+      background-color: #fbebee;
+      color: var(--error-color);
+      border: 1px solid var(--error-color);
     }
-    
-    .toggle-switch {
-      position: relative;
-      display: inline-block;
-      width: 60px;
-      height: 34px;
+
+    .alert-success {
+      background-color: #f0f9f4;
+      color: var(--success-color);
+      border: 1px solid var(--success-color);
     }
-    
-    .toggle-switch input {
-      opacity: 0;
-      width: 0;
-      height: 0;
-    }
-    
-    .slider {
-      position: absolute;
-      cursor: pointer;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: #ccc;
-      transition: .4s;
-      border-radius: 34px;
-    }
-    
-    .slider:before {
-      position: absolute;
-      content: "";
-      height: 26px;
-      width: 26px;
-      left: 4px;
-      bottom: 4px;
-      background-color: white;
-      transition: .4s;
-      border-radius: 50%;
-    }
-    
-    input:checked + .slider {
-      background-color: var(--primary-color);
-    }
-    
-    input:checked + .slider:before {
-      transform: translateX(26px);
-    }
-    
-    .toggle-label {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-    }
-    
-    /* Responsive styles */
+
+    /* --- Responsive Design --- */
     @media (max-width: 768px) {
-      .navbar-nav {
-        position: fixed;
-        top: 70px;
-        left: -100%;
-        width: 80%;
-        height: calc(100vh - 70px);
-        background-color: var(--nav-bg);
-        flex-direction: column;
-        align-items: flex-start;
-        padding: 2rem;
-        transition: left 0.3s ease;
-      }
-      
-      .navbar-nav.active {
-        left: 0;
+      .navbar {
+        padding: 1rem;
       }
       
       .menu-toggle {
         display: block;
       }
       
-      .dropdown-menu {
-        position: static;
-        box-shadow: none;
-        opacity: 1;
-        visibility: visible;
-        transform: none;
+      .navbar-nav {
         display: none;
-        padding-left: 1rem;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        width: 100%;
+        background-color: var(--navbar-background);
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 1rem 0;
+        box-shadow: var(--navbar-shadow);
       }
       
-      .dropdown:hover .dropdown-menu,
+      .navbar-nav.active {
+        display: flex;
+      }
+      
+      .nav-link {
+        width: 100%;
+        padding: 1rem 1.5rem;
+      }
+      
+      .dropdown {
+        width: 100%;
+      }
+
+      .dropdown-menu {
+        position: static;
+        border: none;
+        box-shadow: none;
+        width: 100%;
+        display: none;
+        padding-left: 2rem;
+      }
+      
       .dropdown.active .dropdown-menu {
         display: block;
       }
-      
+
       .settings-container {
-        padding: 1rem;
         margin: 1rem;
+        padding: 1.5rem;
+      }
+
+      h1 {
+        font-size: 1.75rem;
+      }
+      
+      h2 {
+        font-size: 1.3rem;
       }
     }
   </style>
@@ -492,8 +511,9 @@ $dark_mode = isset($_SESSION['dark_mode']) ? $_SESSION['dark_mode'] : 0;
         </div>
         
         <div class="form-group">
-          <label for="email">Email Address</label>
-          <input type="email" id="email" name="email" value="<?php echo htmlspecialchars($email); ?>" required>
+          <label>Email Address</label>
+          <div class="static-field"><?php echo htmlspecialchars($email); ?></div>
+          <small>Your email address cannot be changed.</small>
         </div>
         
         <button type="submit" class="btn">Update Profile</button>

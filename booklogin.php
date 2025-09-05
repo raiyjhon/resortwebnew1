@@ -634,26 +634,28 @@ if ($stmt = $conn->prepare("SELECT fullname FROM users WHERE id = ?")) {
                     <input type="date" id="checkinDate" name="checkinDate" required onchange="updateAvailability()" disabled />
                 </div>
 
-                <!-- MODIFICATION: Group for fixed cottage time slots -->
+                <!-- Group for fixed cottage time slots -->
                 <div id="cottageTimeSlotGroup" class="form-group" style="display:none;">
                     <label for="cottageTimeSlot">3. Time Slot:</label>
+                    <!-- **** FIX: Changed name from "time_slot_select" to "time_slot" to match the other inputs **** -->
                     <select id="cottageTimeSlot" name="time_slot" onchange="setFixedTimes()"></select>
                     <div id="stockNoticeCottage" style="color: red; font-size: 0.9rem; margin-top: 0.25rem;"></div>
                 </div>
 
-                <!-- MODIFICATION: Group for regular time-in -->
+                <!-- Group for regular time-in (for user input ONLY) -->
                 <div id="regularTimeInGroup" class="form-group" style="display:none;">
-                    <label for="checkinTime">Timein:</label>
-                    <input type="time" id="checkinTime" name="checkinTime" onchange="calculateTimeout()" />
+                    <label for="checkinTimeInput">Timein:</label>
+                    <!-- **** FIX 1: REMOVED name="checkinTime" FROM THIS INPUT **** -->
+                    <input type="time" id="checkinTimeInput" onchange="calculateTimeout()" />
                 </div>
 
-                <!-- MODIFICATION: Group for AM/PM radio buttons for non-cottages -->
+                <!-- Group for AM/PM radio buttons for non-cottages -->
                 <div id="timeSlotGroup" class="form-group" style="display:none;">
                     <label>Time Slot:</label>
                     <div id="timeSlotOptions"></div>
                 </div>
 
-                <!-- MODIFICATION: Group for regular time-out -->
+                <!-- Group for regular time-out -->
                 <div id="regularTimeOutGroup" class="form-group" style="display:none;">
                     <label for="checkoutTime">Timeout:</label>
                     <input type="time" id="checkoutTime" name="checkoutTime" readonly />
@@ -715,10 +717,9 @@ if ($stmt = $conn->prepare("SELECT fullname FROM users WHERE id = ?")) {
                     <input type="text" id="totalPriceDisplay" readonly style="font-weight:bold; border:none; background:none; font-size: 1.2rem;" value="₱0" />
                 </div>
                 
-                <!-- Hidden inputs for time will be set programmatically for Cottages -->
-                <input type="hidden" id="checkinTimeHidden" name="checkinTime" />
-                <input type="hidden" id="checkoutTimeHidden" name="checkoutTime" />
-
+                <!-- **** FIX 2: This is now the ONLY input that submits the checkinTime **** -->
+                <input type="hidden" id="finalCheckinTime" name="checkinTime" />
+                
                 <input type="hidden" id="roomPrice" name="roomPrice" />
                 <input type="hidden" id="roomName" name="roomName" />
                 <input type="hidden" id="roomId" name="roomId" />
@@ -758,11 +759,13 @@ if ($stmt = $conn->prepare("SELECT fullname FROM users WHERE id = ?")) {
             
             const bookingForm = document.getElementById('bookingForm');
             bookingForm.reset();
+            // **** FIX 3: Clear the hidden checkinTime field when the modal opens ****
+            document.getElementById('finalCheckinTime').value = ''; 
+            
             bookingForm.dataset.roomType = roomType; // Store room type
 
             document.getElementById('guestLimitText').textContent = `(Max: ${guestLimit})`;
 
-            // --- DURATION LOGIC ---
             const stayDurationSelect = document.getElementById('stayDuration');
             const options = stayDurationSelect.options;
 
@@ -779,7 +782,7 @@ if ($stmt = $conn->prepare("SELECT fullname FROM users WHERE id = ?")) {
                     }
                 }
                 stayDurationSelect.value = '22';
-            } else if (roomType === 'Cottage') { // Added Cottage specific logic
+            } else if (roomType === 'Cottage') {
                 for (let i = 0; i < options.length; i++) {
                     if (options[i].value === '22') {
                         options[i].disabled = true;
@@ -787,19 +790,16 @@ if ($stmt = $conn->prepare("SELECT fullname FROM users WHERE id = ?")) {
                     }
                 }
             }
-            // --- END DURATION LOGIC ---
 
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('checkinDate').setAttribute('min', today);
             
-            // MODIFICATION: Reset and hide all time fields initially
             document.getElementById('checkinDate').disabled = true;
             document.getElementById('cottageTimeSlotGroup').style.display = 'none';
             document.getElementById('regularTimeInGroup').style.display = 'none';
             document.getElementById('timeSlotGroup').style.display = 'none';
             document.getElementById('regularTimeOutGroup').style.display = 'none';
 
-            // Trigger duration change in case a value was auto-set (for VipRoom)
             onDurationChange(); 
         }
 
@@ -808,7 +808,6 @@ if ($stmt = $conn->prepare("SELECT fullname FROM users WHERE id = ?")) {
             const checkinDate = document.getElementById('checkinDate');
             const roomType = document.getElementById('bookingForm').dataset.roomType;
 
-            // Hide all time-related fields first
             document.getElementById('cottageTimeSlotGroup').style.display = 'none';
             document.getElementById('regularTimeInGroup').style.display = 'none';
             document.getElementById('timeSlotGroup').style.display = 'none';
@@ -816,47 +815,41 @@ if ($stmt = $conn->prepare("SELECT fullname FROM users WHERE id = ?")) {
             document.getElementById('stockNotice').textContent = '';
             document.getElementById('stockNoticeCottage').textContent = '';
 
-
             if (duration) {
-                checkinDate.disabled = false; // Enable date picker
+                checkinDate.disabled = false;
                 
                 if (roomType === 'Cottage') {
                     document.getElementById('cottageTimeSlotGroup').style.display = 'block';
                     const cottageTimeSlot = document.getElementById('cottageTimeSlot');
-                    cottageTimeSlot.innerHTML = '<option value="" disabled selected>Select a time slot</option>'; // Reset
+                    cottageTimeSlot.innerHTML = '<option value="" disabled selected>Select a time slot</option>';
 
-                    if (duration === '6') { // Half Day
+                    if (duration === '6') {
                         cottageTimeSlot.innerHTML += '<option value="am">8:00 AM - 3:00 PM</option>';
                         cottageTimeSlot.innerHTML += '<option value="pm">3:00 PM - 10:00 PM</option>';
-                    } else if (duration === '12') { // Whole Day
+                    } else if (duration === '12') {
                         cottageTimeSlot.innerHTML += '<option value="whole">8:00 AM - 10:00 PM</option>';
                     }
                 } else {
-                    // Logic for non-cottages (VipRoom, etc.)
                     document.getElementById('regularTimeInGroup').style.display = 'block';
                     document.getElementById('regularTimeOutGroup').style.display = 'block';
                 }
-                updateAvailability(); // Check availability for the selected duration
+                updateAvailability();
             } else {
-                checkinDate.disabled = true; // Keep it disabled if no duration
+                checkinDate.disabled = true;
             }
         }
-
-        // Sets the hidden check-in/out times when a fixed slot is chosen for a Cottage
+        
+        // **** FIX 4: This function now populates the single hidden input field ****
         function setFixedTimes() {
             const selectedSlot = document.getElementById('cottageTimeSlot').value;
-            const checkinTimeHidden = document.getElementById('checkinTimeHidden');
-            const checkoutTimeHidden = document.getElementById('checkoutTimeHidden');
+            const finalCheckinTime = document.getElementById('finalCheckinTime');
 
             if (selectedSlot === 'am') {
-                checkinTimeHidden.value = '08:00';
-                checkoutTimeHidden.value = '15:00';
+                finalCheckinTime.value = '08:00';
             } else if (selectedSlot === 'pm') {
-                checkinTimeHidden.value = '15:00';
-                checkoutTimeHidden.value = '22:00';
+                finalCheckinTime.value = '15:00';
             } else if (selectedSlot === 'whole') {
-                checkinTimeHidden.value = '08:00';
-                checkoutTimeHidden.value = '22:00';
+                finalCheckinTime.value = '08:00';
             }
         }
 
@@ -872,13 +865,18 @@ if ($stmt = $conn->prepare("SELECT fullname FROM users WHERE id = ?")) {
             }
         };
 
+        // **** FIX 5: This function now uses the new input IDs and populates the hidden field ****
         function calculateTimeout() {
-            const timeIn = document.getElementById("checkinTime").value;
+            const timeInValue = document.getElementById("checkinTimeInput").value;
             const duration = parseInt(document.getElementById("stayDuration").value, 10);
             const checkoutTimeInput = document.getElementById("checkoutTime");
+            const finalCheckinTime = document.getElementById('finalCheckinTime');
 
-            if (timeIn && !isNaN(duration)) {
-                const [hours, minutes] = timeIn.split(':').map(Number);
+            // Set the value for the hidden input that will be submitted to the server
+            finalCheckinTime.value = timeInValue;
+
+            if (timeInValue && !isNaN(duration)) {
+                const [hours, minutes] = timeInValue.split(':').map(Number);
                 const date = new Date();
                 date.setHours(hours, minutes, 0);
                 date.setHours(date.getHours() + duration);
@@ -896,12 +894,11 @@ if ($stmt = $conn->prepare("SELECT fullname FROM users WHERE id = ?")) {
             const checkinDate = document.getElementById('checkinDate').value;
             const roomType = document.getElementById('bookingForm').dataset.roomType;
             
-            // General stock notice
             const stockNotice = document.getElementById('stockNotice');
             stockNotice.textContent = '';
             
             if (!checkinDate || !duration) {
-                return; // Exit if date or duration is not set
+                return;
             }
 
             try {
@@ -929,22 +926,22 @@ if ($stmt = $conn->prepare("SELECT fullname FROM users WHERE id = ?")) {
                          }
                     }
                 } else {
-                    // Original logic for non-cottages
                     const timeSlotGroup = document.getElementById('timeSlotGroup');
                     const timeSlotOptions = document.getElementById('timeSlotOptions');
                     timeSlotOptions.innerHTML = '';
                     
                     if (duration === '6') {
+                        document.getElementById('regularTimeInGroup').style.display = 'none';
                         timeSlotGroup.style.display = 'block';
                         timeSlotOptions.innerHTML = `
                             <div style="margin-bottom: 0.5rem;"><input type="radio" id="timeAM" name="time_slot" value="am" ${!availability.am && 'disabled'} required><label for="timeAM"> AM</label><span style="margin-left: 0.5rem; color: ${availability.am ? 'green' : 'red'};">(${availability.am ? 'Available' : 'Fully booked'})</span></div>
                             <div><input type="radio" id="timePM" name="time_slot" value="pm" ${!availability.pm && 'disabled'} required><label for="timePM"> PM</label><span style="margin-left: 0.5rem; color: ${availability.pm ? 'green' : 'red'};">(${availability.pm ? 'Available' : 'Fully booked'})</span></div>`;
-                    } else {
+                    } else if (duration === '12' || duration === '22') {
                         timeSlotGroup.style.display = 'none';
+                        document.getElementById('regularTimeInGroup').style.display = 'block';
                         if (!availability.whole) {
                             stockNotice.textContent = 'This duration is fully booked for the selected date.';
                         } else {
-                            // Add a hidden input for 'whole' day selection for form submission
                             timeSlotOptions.innerHTML = '<input type="hidden" name="time_slot" value="whole">';
                         }
                     }

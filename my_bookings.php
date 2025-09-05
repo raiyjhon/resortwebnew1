@@ -446,7 +446,7 @@ try {
             display: inline-flex;
             align-items: center;
             gap: 5px;
-            transition: background-color 0.3s ease, transform 0.2s ease;
+            transition: background-color: 0.3s ease, transform 0.2s ease;
             white-space: nowrap;
         }
 
@@ -795,6 +795,7 @@ try {
                 <thead>
                     <tr>
                         <th>Booking ID</th>
+                        <th>Date Booked</th>
                         <th>Guest Name</th>
                         <th>Room Name</th>
                         <th>Price</th>
@@ -809,13 +810,14 @@ try {
                         <th>Status</th>
                         <th>Payment</th>
                         <th>Actions</th>
-                        <th>Booked At</th>
                     </tr>
                 </thead>
                 <tbody>
                 <?php while ($booking = $result->fetch_assoc()): ?>
                     <tr>
                         <td><?php echo htmlspecialchars($booking['id']); ?></td>
+                        <!-- MODIFIED: Removed the time format, keeping only the date -->
+                        <td><?php echo date('M d, Y', strtotime($booking['created_at'])); ?></td>
                         <td><?php echo htmlspecialchars($booking['guestName']); ?></td>
                         <td><?php echo htmlspecialchars($booking['roomName']); ?></td>
                         <td><?php echo "₱" . number_format($booking['roomPrice'], 2); ?></td>
@@ -1054,7 +1056,6 @@ try {
                                 <?php endif; ?>
                             </div>
                         </td>
-                        <td><?php echo date('M d, Y h:i A', strtotime($booking['created_at'])); ?></td>
                     </tr>
                 <?php endwhile; ?>
                 </tbody>
